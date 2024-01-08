@@ -1,0 +1,41 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+- job: Terraform
+  displayName: 'Run Terraform'
+  steps:
+  - task: UseDotNet@2
+    inputs:
+      version: '3.x'
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - task: TerraformInstaller@0
+    inputs:
+      terraformVersion: 'latest'
+
+  - powershell: |
+      # Set Terraform variables
+      $env:TF_VAR_client_id = "$(your_client_id_secret)"
+      $env:TF_VAR_client_secret = "$(your_client_secret_secret)"
+      $env:TF_VAR_subscription_id = "$(your_subscription_id_secret)"
+      $env:TF_VAR_tenant_id = "$(your_tenant_id_secret)"
+      
+      # Run Terraform init
+      terraform init
+
+      # Run Terraform plan
+      terraform plan -out=tfplan
+
+      # Run Terraform apply
+      terraform apply -auto-approve tfplan
+    displayName: 'Run Terraform'
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(Pipeline.Workspace)'
+      artifact: 'tf-state'
+      publishLocation: 'pipeline'
