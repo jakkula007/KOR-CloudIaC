@@ -1,47 +1,39 @@
-name: Terraform Deployment
+trigger:
+- main
 
-on:
-  push:
-    branches:
-      - main
+pool:
+  vmImage: 'ubuntu-latest'
 
 jobs:
-  plan:
-    runs-on: ubuntu-latest
+- job: Terraform
+  steps:
+  - checkout: self
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'dotnetcore'
+      version: '2.1.x'
+      installationPath: $(Agent.ToolsDirectory)/dotnet
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+  - script: |
+      wget -q https://releases.hashicorp.com/terraform/0.14.7/terraform_0.14.7_linux_amd64.zip
+      unzip terraform_0.14.7_linux_amd64.zip -d $(Agent.ToolsDirectory)/terraform
+      rm terraform_0.14.7_linux_amd64.zip
+    displayName: 'Download and Install Terraform'
 
-      - name: Terraform Init
-        run: terraform init
+  - script: |
+      $(Agent.ToolsDirectory)/terraform/terraform init
+      $(Agent.ToolsDirectory)/terraform/terraform plan -out=tfplan
+    displayName: 'Terraform Init and Plan'
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
+  - script: |
+      $(Agent.ToolsDirectory)/terraform/terraform apply -auto-approve tfplan
+    displayName: 'Terraform Apply'
 
-  deploy:
-    runs-on: ubuntu-latest
+  - script: |
+      # Clean up resources if needed
+    displayName: 'Cleanup (Optional)'
 
-    needs: plan
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-
-      # You can add additional steps here, such as testing or notifications
-
-      - name: Cleanup (Optional)
-        run: |
-          # Clean up resources, if needed
-
-      - name: Terraform Destroy (Optional)
-        run: terraform destroy -auto-approve
+  - script: |
+      # You can add Terraform destroy step if needed
+    displayName: 'Terraform 
