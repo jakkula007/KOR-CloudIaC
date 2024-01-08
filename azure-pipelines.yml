@@ -1,3 +1,4 @@
+# azure-pipelines.yml
 trigger:
 - main
 
@@ -7,33 +8,25 @@ pool:
 jobs:
 - job: Terraform
   steps:
-  - checkout: self
-
   - task: UseDotNet@2
     inputs:
-      packageType: 'dotnetcore'
-      version: '2.1.x'
-      installationPath: $(Agent.ToolsDirectory)/dotnet
+      packageType: 'runtime'
+      version: '3.x'
 
   - script: |
-      wget -q https://releases.hashicorp.com/terraform/0.14.7/terraform_0.14.7_linux_amd64.zip
-      unzip terraform_0.14.7_linux_amd64.zip -d $(Agent.ToolsDirectory)/terraform
-      rm terraform_0.14.7_linux_amd64.zip
-    displayName: 'Download and Install Terraform'
+      # Set Terraform variables from secrets
+      echo "##vso[task.setvariable variable=TF_VAR_client_id;issecret=true]$(your_client_id_secret)"
+      echo "##vso[task.setvariable variable=TF_VAR_client_secret;issecret=true]$(your_client_secret_secret)"
+      echo "##vso[task.setvariable variable=TF_VAR_subscription_id;issecret=true]$(your_subscription_id_secret)"
+      echo "##vso[task.setvariable variable=TF_VAR_tenant_id;issecret=true]$(your_tenant_id_secret)"
+      
+      # Run Terraform init
+      terraform --version
+      terraform init
 
-  - script: |
-      $(Agent.ToolsDirectory)/terraform/terraform init
-      $(Agent.ToolsDirectory)/terraform/terraform plan -out=tfplan
-    displayName: 'Terraform Init and Plan'
+      # Run Terraform plan
+      terraform plan -out=tfplan
 
-  - script: |
-      $(Agent.ToolsDirectory)/terraform/terraform apply -auto-approve tfplan
-    displayName: 'Terraform Apply'
-
-  - script: |
-      # Clean up resources if needed
-    displayName: 'Cleanup (Optional)'
-
-  - script: |
-      # You can add Terraform destroy step if needed
-    displayName: 'Terraform 
+      # Run Terraform apply
+      terraform apply -auto-approve tfplan
+    displayName: 'Run Terraform'
