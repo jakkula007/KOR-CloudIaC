@@ -8,9 +8,9 @@ jobs:
 - job: Terraform
   displayName: 'Terraform Job'
   steps:
-  - task: HashiCorpTerraformToolInstaller@<latest_installer_version>
+  - task: HashiCorpTerraformToolInstaller@0.12.0
     inputs:
-      terraformVersion: '<latest_terraform_version>'
+      terraformVersion: '0.14.7'
 
   - script: |
       terraform init
